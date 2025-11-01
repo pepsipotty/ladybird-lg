@@ -165,17 +165,55 @@ static NSString* const TOOLBAR_TAB_OVERVIEW_IDENTIFIER = @"ToolbarTabOverviewIde
     return (Tab*)[self window];
 }
 
+- (void)configureWindowGlassEffect
+{
+    if (@available(macOS 26, *)) {
+        // Enable Liquid Glass design language for macOS Tahoe 26+
+        self.tab.titlebarAppearsTransparent = YES;
+
+        // Remove toolbar baseline separator for unified glass appearance
+        [self.toolbar setShowsBaselineSeparator:NO];
+
+        // Create visual effect view for glass material
+        auto* glass_background = [[NSVisualEffectView alloc] init];
+        [glass_background setMaterial:NSVisualEffectMaterialUnderWindowBackground];
+        [glass_background setBlendingMode:NSVisualEffectBlendingModeBehindWindow];
+        [glass_background setState:NSVisualEffectStateActive];
+        [glass_background setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
+
+        // Insert glass background behind existing content
+        auto* current_content = [self.tab contentView];
+        [glass_background setFrame:[current_content frame]];
+
+        auto* container = [[NSView alloc] init];
+        [container addSubview:glass_background];
+        [container addSubview:current_content];
+
+        [current_content setFrame:[container bounds]];
+        [current_content setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
+
+        [self.tab setContentView:container];
+    } else {
+        // macOS 25 and earlier: standard toolbar appearance
+        self.tab.titlebarAppearsTransparent = NO;
+        [self.toolbar setShowsBaselineSeparator:YES];
+    }
+}
+
 - (void)createNewTab:(id)sender
 {
     auto* delegate = (ApplicationDelegate*)[NSApp delegate];
 
+    // Temporarily disable transparency during tab creation animation
+    BOOL wasTransparent = self.tab.titlebarAppearsTransparent;
     self.tab.titlebarAppearsTransparent = NO;
 
     [delegate createNewTab:WebView::Application::settings().new_tab_page_url()
                    fromTab:[self tab]
                activateTab:Web::HTML::ActivateTab::Yes];
 
-    self.tab.titlebarAppearsTransparent = YES;
+    // Restore previous transparency state (respects glass configuration)
+    self.tab.titlebarAppearsTransparent = wasTransparent;
 }
 
 - (void)setLocationFieldText:(StringView)url
@@ -231,9 +269,14 @@ static NSString* const TOOLBAR_TAB_OVERVIEW_IDENTIFIER = @"ToolbarTabOverviewIde
 
 - (void)showTabOverview:(id)sender
 {
+    // Temporarily disable transparency during tab overview animation
+    BOOL wasTransparent = self.tab.titlebarAppearsTransparent;
     self.tab.titlebarAppearsTransparent = NO;
+
     [self.window toggleTabOverview:sender];
-    self.tab.titlebarAppearsTransparent = YES;
+
+    // Restore previous transparency state (respects glass configuration)
+    self.tab.titlebarAppearsTransparent = wasTransparent;
 }
 
 #pragma mark - Properties
@@ -380,6 +423,9 @@ static NSString* const TOOLBAR_TAB_OVERVIEW_IDENTIFIER = @"ToolbarTabOverviewIde
 
     [self.window setToolbar:self.toolbar];
     [self.window setToolbarStyle:NSWindowToolbarStyleUnified];
+
+    // Configure Liquid Glass for macOS 26+
+    [self configureWindowGlassEffect];
 
     [self.window makeKeyAndOrderFront:sender];
 
