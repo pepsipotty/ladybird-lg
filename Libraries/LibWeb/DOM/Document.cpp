@@ -649,14 +649,14 @@ GC::Ptr<Selection::Selection> Document::get_selection() const
 WebIDL::ExceptionOr<void> Document::write(Vector<TrustedTypes::TrustedHTMLOrString> const& text)
 {
     // The document.write(...text) method steps are to run the document write steps with this, text, false, and "Document write".
-    return run_the_document_write_steps(text, AddLineFeed::No, TrustedTypes::InjectionSink::Documentwrite);
+    return run_the_document_write_steps(text, AddLineFeed::No, TrustedTypes::InjectionSink::Document_write);
 }
 
 // https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-document-writeln
 WebIDL::ExceptionOr<void> Document::writeln(Vector<TrustedTypes::TrustedHTMLOrString> const& text)
 {
     // The document.writeln(...text) method steps are to run the document write steps with this, text, true, and "Document writeln".
-    return run_the_document_write_steps(text, AddLineFeed::Yes, TrustedTypes::InjectionSink::Documentwriteln);
+    return run_the_document_write_steps(text, AddLineFeed::Yes, TrustedTypes::InjectionSink::Document_writeln);
 }
 
 // https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#document-write-steps
@@ -1342,11 +1342,6 @@ void Document::update_layout(UpdateLayoutReason reason)
     if (!navigable || navigable->active_document() != this)
         return;
 
-    // NOTE: If our parent document needs a relayout, we must do that *first*.
-    //       This is necessary as the parent layout may cause our viewport to change.
-    if (navigable->container() && &navigable->container()->document() != this)
-        navigable->container()->document().update_layout(reason);
-
     update_style();
 
     if (m_layout_root && !m_layout_root->needs_layout_update())
@@ -1557,6 +1552,11 @@ void Document::update_layout(UpdateLayoutReason reason)
 
 void Document::update_style()
 {
+    // NOTE: If our parent document needs a relayout, we must do that *first*. This is required as it may cause the
+    // viewport to change which will can affect media query evaluation and the value of the `vw` unit.
+    if (navigable()->container() && &navigable()->container()->document() != this)
+        navigable()->container()->document().update_layout(UpdateLayoutReason::ChildDocumentStyleUpdate);
+
     if (!browsing_context())
         return;
 
@@ -2816,7 +2816,7 @@ void Document::dispatch_events_for_animation_if_necessary(GC::Ref<Animations::An
                 name,
                 {
                     { .bubbles = true },
-                    css_animation.id(),
+                    css_animation.animation_name(),
                     elapsed_time_seconds,
                 }),
             .animation = css_animation,
@@ -3015,7 +3015,7 @@ void Document::update_readiness(HTML::DocumentReadyState readiness_value)
         auto navigable = this->navigable();
         if (navigable && navigable->is_traversable()) {
             if (!is_decoded_svg()) {
-                HTML::HTMLLinkElement::load_fallback_favicon_if_needed(*this).release_value_but_fixme_should_propagate_errors();
+                HTML::HTMLLinkElement::load_fallback_favicon_if_needed(*this);
             }
             navigable->traversable_navigable()->page().client().page_did_finish_loading(url());
         } else {
@@ -3189,7 +3189,7 @@ String Document::fg_color() const
 void Document::set_fg_color(String const& value)
 {
     if (auto* body_element = body(); body_element && !is<HTML::HTMLFrameSetElement>(*body_element))
-        MUST(body_element->set_attribute(HTML::AttributeNames::text, value));
+        body_element->set_attribute_value(HTML::AttributeNames::text, value);
 }
 
 String Document::link_color() const
@@ -3202,7 +3202,7 @@ String Document::link_color() const
 void Document::set_link_color(String const& value)
 {
     if (auto* body_element = body(); body_element && !is<HTML::HTMLFrameSetElement>(*body_element))
-        MUST(body_element->set_attribute(HTML::AttributeNames::link, value));
+        body_element->set_attribute_value(HTML::AttributeNames::link, value);
 }
 
 String Document::vlink_color() const
@@ -3215,7 +3215,7 @@ String Document::vlink_color() const
 void Document::set_vlink_color(String const& value)
 {
     if (auto* body_element = body(); body_element && !is<HTML::HTMLFrameSetElement>(*body_element))
-        MUST(body_element->set_attribute(HTML::AttributeNames::vlink, value));
+        body_element->set_attribute_value(HTML::AttributeNames::vlink, value);
 }
 
 String Document::alink_color() const
@@ -3228,7 +3228,7 @@ String Document::alink_color() const
 void Document::set_alink_color(String const& value)
 {
     if (auto* body_element = body(); body_element && !is<HTML::HTMLFrameSetElement>(*body_element))
-        MUST(body_element->set_attribute(HTML::AttributeNames::alink, value));
+        body_element->set_attribute_value(HTML::AttributeNames::alink, value);
 }
 
 String Document::bg_color() const
@@ -3241,7 +3241,7 @@ String Document::bg_color() const
 void Document::set_bg_color(String const& value)
 {
     if (auto* body_element = body(); body_element && !is<HTML::HTMLFrameSetElement>(*body_element))
-        MUST(body_element->set_attribute(HTML::AttributeNames::bgcolor, value));
+        body_element->set_attribute_value(HTML::AttributeNames::bgcolor, value);
 }
 
 String Document::dump_dom_tree_as_json() const
@@ -5472,12 +5472,7 @@ void Document::remove_replaced_animations()
 
 WebIDL::ExceptionOr<Vector<GC::Ref<Animations::Animation>>> Document::get_animations()
 {
-    Vector<GC::Ref<Animations::Animation>> relevant_animations;
-    TRY(for_each_child_of_type_fallible<Element>([&](auto& child) -> WebIDL::ExceptionOr<IterationDecision> {
-        relevant_animations.extend(TRY(child.get_animations(Animations::GetAnimationsOptions { .subtree = true })));
-        return IterationDecision::Continue;
-    }));
-    return relevant_animations;
+    return calculate_get_animations(*this);
 }
 
 // https://html.spec.whatwg.org/multipage/dom.html#dom-document-nameditem-filter
@@ -6373,7 +6368,7 @@ WebIDL::ExceptionOr<GC::Root<DOM::Document>> Document::parse_html_unsafe(JS::VM&
         TrustedTypes::TrustedTypeName::TrustedHTML,
         HTML::current_principal_global_object(),
         html,
-        TrustedTypes::InjectionSink::DocumentparseHTMLUnsafe,
+        TrustedTypes::InjectionSink::Document_parseHTMLUnsafe,
         TrustedTypes::Script.to_string()));
 
     // 2. Let document be a new Document, whose content type is "text/html".

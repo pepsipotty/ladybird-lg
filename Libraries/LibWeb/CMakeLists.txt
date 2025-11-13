@@ -758,7 +758,6 @@ set(SOURCES
     Loader/GeneratedPagesLoader.cpp
     Loader/LoadRequest.cpp
     Loader/ProxyMappings.cpp
-    Loader/Resource.cpp
     Loader/ResourceLoader.cpp
     MathML/AttributeNames.cpp
     MathML/MathMLElement.cpp
@@ -901,12 +900,14 @@ set(SOURCES
     SVG/SVGAnimatedEnumeration.cpp
     SVG/SVGAnimatedLength.cpp
     SVG/SVGAnimatedNumber.cpp
+    SVG/SVGAnimatedNumberList.cpp
     SVG/SVGAnimatedRect.cpp
     SVG/SVGAnimatedString.cpp
     SVG/SVGAnimatedTransformList.cpp
     SVG/SVGAnimationElement.cpp
     SVG/SVGCircleElement.cpp
     SVG/SVGClipPathElement.cpp
+    SVG/SVGComponentTransferFunctionElement.cpp
     SVG/SVGDecodedImageData.cpp
     SVG/SVGDefsElement.cpp
     SVG/SVGDescElement.cpp
@@ -914,8 +915,13 @@ set(SOURCES
     SVG/SVGEllipseElement.cpp
     SVG/SVGFEBlendElement.cpp
     SVG/SVGFEColorMatrixElement.cpp
+    SVG/SVGFEComponentTransferElement.cpp
     SVG/SVGFECompositeElement.cpp
     SVG/SVGFEFloodElement.cpp
+    SVG/SVGFEFuncAElement.cpp
+    SVG/SVGFEFuncBElement.cpp
+    SVG/SVGFEFuncGElement.cpp
+    SVG/SVGFEFuncRElement.cpp
     SVG/SVGFEGaussianBlurElement.cpp
     SVG/SVGFEImageElement.cpp
     SVG/SVGFEMergeElement.cpp
@@ -933,8 +939,11 @@ set(SOURCES
     SVG/SVGLength.cpp
     SVG/SVGLinearGradientElement.cpp
     SVG/SVGLineElement.cpp
+    SVG/SVGList.cpp
     SVG/SVGMaskElement.cpp
     SVG/SVGMetadataElement.cpp
+    SVG/SVGNumber.cpp
+    SVG/SVGNumberList.cpp
     SVG/SVGPathElement.cpp
     SVG/SVGPolygonElement.cpp
     SVG/SVGPolylineElement.cpp
@@ -1032,6 +1041,7 @@ set(SOURCES
     WebGL/Extensions/EXTRenderSnorm.cpp
     WebGL/Extensions/EXTTextureFilterAnisotropic.cpp
     WebGL/Extensions/EXTTextureNorm16.cpp
+    WebGL/Extensions/OESStandardDerivatives.cpp
     WebGL/Extensions/OESVertexArrayObject.cpp
     WebGL/Extensions/WebGLCompressedTextureS3tc.cpp
     WebGL/Extensions/WebGLCompressedTextureS3tcSrgb.cpp
@@ -1040,6 +1050,7 @@ set(SOURCES
     WebGL/OpenGLContext.cpp
     WebGL/WebGL2RenderingContext.cpp
     WebGL/WebGL2RenderingContextImpl.cpp
+    WebGL/WebGL2RenderingContextOverloads.cpp
     WebGL/WebGLActiveInfo.cpp
     WebGL/WebGLBuffer.cpp
     WebGL/WebGLContextAttributes.cpp
@@ -1052,6 +1063,7 @@ set(SOURCES
     WebGL/WebGLRenderingContext.cpp
     WebGL/WebGLRenderingContextBase.cpp
     WebGL/WebGLRenderingContextImpl.cpp
+    WebGL/WebGLRenderingContextOverloads.cpp
     WebGL/WebGLSampler.cpp
     WebGL/WebGLShader.cpp
     WebGL/WebGLShaderPrecisionFormat.cpp
