@@ -52,6 +52,9 @@ struct GetHTMLOptions {
     bool serializable_shadow_roots { false };
     Vector<GC::Root<ShadowRoot>> shadow_roots {};
 };
+struct FullscreenOptions {
+    Bindings::FullscreenNavigationUI navigation_ui { Bindings::FullscreenNavigationUI::Auto };
+};
 
 // https://w3c.github.io/csswg-drafts/cssom-view-1/#dictdef-scrollintoviewoptions
 struct ScrollIntoViewOptions : public HTML::ScrollOptions {
@@ -251,6 +254,8 @@ public:
     WebIDL::ExceptionOr<TrustedTypes::TrustedHTMLOrString> outer_html() const;
     WebIDL::ExceptionOr<void> set_outer_html(TrustedTypes::TrustedHTMLOrString const&);
 
+    GC::Ref<WebIDL::Promise> request_fullscreen(FullscreenOptions const& options = {});
+    
     bool is_focused() const;
     bool is_active() const;
     bool is_target() const;
